@@ -26,8 +26,11 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', userSchema);
 
+// API routes
+const apiRouter = express.Router();
+
 // Signup route
-app.post('/signup', async (req, res) => {
+apiRouter.post('/signup', async (req, res) => {
   try {
     const { email, password } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -40,7 +43,7 @@ app.post('/signup', async (req, res) => {
 });
 
 // Login route
-app.post('/login', async (req, res) => {
+apiRouter.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
@@ -59,7 +62,7 @@ app.post('/login', async (req, res) => {
 });
 
 // Is activated route
-app.get('/is_activated', async (req, res) => {
+apiRouter.get('/is_activated', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) {
@@ -77,7 +80,7 @@ app.get('/is_activated', async (req, res) => {
 });
 
 // Activate route
-app.post('/activate', async (req, res) => {
+apiRouter.post('/activate', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) {
@@ -100,7 +103,13 @@ app.post('/activate', async (req, res) => {
   }
 });
 
+// Use the API router with the /api/v1 prefix
+app.use('/api/v1', apiRouter);
+
 const PORT = process.env.PORT || 8004;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
+// For Vercel deployment
+module.exports = app;
