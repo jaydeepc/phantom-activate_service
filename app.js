@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 dotenv.config();
 
@@ -25,6 +26,15 @@ const userSchema = new mongoose.Schema({
 });
 
 const User = mongoose.model('User', userSchema);
+
+// Activation Key model
+const activationKeySchema = new mongoose.Schema({
+  email: { type: String, required: true, unique: true },
+  key: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now, expires: '24h' } // Key expires after 24 hours
+});
+
+const ActivationKey = mongoose.model('ActivationKey', activationKeySchema);
 
 // API routes
 const apiRouter = express.Router();
@@ -100,6 +110,53 @@ apiRouter.post('/activate', async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ error: 'Error activating user' });
+  }
+});
+
+// Generate Activation Key route
+apiRouter.post('/generate-activation-key', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Generate a random activation key
+    const key = crypto.randomBytes(32).toString('hex');
+
+    // Check if an activation key already exists for this email
+    let activationKey = await ActivationKey.findOne({ email });
+
+    if (activationKey) {
+      // Update the existing key
+      activationKey.key = key;
+      activationKey.createdAt = new Date();
+    } else {
+      // Create a new activation key
+      activationKey = new ActivationKey({ email, key });
+    }
+
+    await activationKey.save();
+
+    res.status(201).json({ message: 'Activation key generated successfully', key });
+  } catch (error) {
+    res.status(500).json({ error: 'Error generating activation key' });
+  }
+});
+
+// Fetch Activation Key route
+apiRouter.get('/fetch-activation-key', async (req, res) => {
+  try {
+    const { email, key } = req.query;
+    if (!email || !key) {
+      return res.status(400).json({ error: 'Email and key are required' });
+    }
+
+    const activationKey = await ActivationKey.findOne({ email, key });
+
+    res.json({ exists: !!activationKey });
+  } catch (error) {
+    res.status(500).json({ error: 'Error fetching activation key' });
   }
 });
 
