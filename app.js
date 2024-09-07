@@ -30,7 +30,7 @@ const User = mongoose.model('User', userSchema);
 // Activation Key model
 const activationKeySchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
-  key: { type: String, required: true },
+  key: { type: String, required: true, unique: true },
   createdAt: { type: Date, default: Date.now, expires: '24h' } // Key expires after 24 hours
 });
 
@@ -147,12 +147,12 @@ apiRouter.post('/generate-activation-key', async (req, res) => {
 // Fetch Activation Key route
 apiRouter.get('/fetch-activation-key', async (req, res) => {
   try {
-    const { email, key } = req.query;
-    if (!email || !key) {
-      return res.status(400).json({ error: 'Email and key are required' });
+    const { key } = req.query;
+    if (!key) {
+      return res.status(400).json({ error: 'Key is required' });
     }
 
-    const activationKey = await ActivationKey.findOne({ email, key });
+    const activationKey = await ActivationKey.findOne({ key });
 
     res.json({ exists: !!activationKey });
   } catch (error) {
